@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>내 극장</title>
+<style>
+@font-face{font-family:"INT";src:url("../../에디터/fonts/Inter-400.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"INT";src:url("../../에디터/fonts/Inter-500.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"INT";src:url("../../에디터/fonts/Inter-700.woff2") format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:"PTD";src:url("../../에디터/fonts/PretendardVariable.woff2") format("woff2-variations"),url("../../에디터/fonts/PretendardVariable.woff2") format("woff2");font-weight:45 930;font-display:swap}
+
+/* v2 — 첫 화면은 flim.ai식 분할 화면(포인트 컬러 패널 + 검은 원 + 큰 제목), 아래는 A24 시스템(따뜻한 흰 바탕 · 모서리 0 · 1px 선) */
+:root{
+  --bg:#fcfbfa; --n50:#f2f0ed; --n100:#e8e6e2; --n200:#d6d4d1; --mute:#9c9791; --ink:#0e0e0d; --dk:#141414;
+  --sans:"INT","PTD",system-ui,sans-serif; --mono:"INT","PTD",system-ui,sans-serif;
+  --expo:cubic-bezier(.19,1,.22,1); --pad:clamp(16px,2.2vw,32px);
+  --pt:#fcaa37; --pt-ink:#0e0e0d; color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:400 17px/1.45 var(--sans);-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word;line-break:strict}
+h1,h2,h3,p{margin:0;text-wrap:pretty}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit}
+button:focus-visible,a:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.mono{font-family:var(--mono);font-size:10px;line-height:1;letter-spacing:.02em;text-transform:uppercase}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid currentColor;padding:8px 10px 7px;font:500 11px/1 var(--sans);text-transform:uppercase;letter-spacing:.02em;text-decoration:none;transition:background .25s,color .25s}
+.btn:hover{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* 머리 */
+header{position:fixed;top:0;left:0;right:0;z-index:50;height:56px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 var(--pad);color:var(--ink);background:none;transition:color .4s}
+header.dark{color:#fff}
+header nav{display:flex;gap:clamp(12px,1.7vw,26px);white-space:nowrap}
+@media (max-width:1380px){header nav{gap:12px;font-size:9px}header nav a::before{margin-right:5px}}
+@media (max-width:1180px){header nav{display:none}}
+header a{text-decoration:none}
+header nav a::before{content:"";display:inline-block;width:0;height:0;border-left:6px solid currentColor;border-top:4px solid transparent;border-bottom:4px solid transparent;margin-right:8px;opacity:0;transform:translateX(-4px);transition:opacity .2s,transform .2s}
+header nav a:hover::before,header nav a[aria-current="true"]::before{opacity:1;transform:none}
+header .mark{font:700 19px/1 var(--sans);letter-spacing:-.04em;white-space:nowrap}
+header .r{justify-self:end;display:flex;gap:10px;align-items:center}
+header .r b{font:inherit;background:var(--ink);color:#fff;padding:7px 9px 6px}
+header.dark .r b{background:#fff;color:#000}
+
+/* ── 첫 화면: 흰 패널이 걷히며 장면이 열린다 (스크롤 연동) ── */
+.hero{position:relative;height:730vh;background:var(--bg)}
+.stick{position:sticky;top:0;height:100vh;overflow:hidden}
+.htop{position:absolute;left:0;top:0;width:100%;height:70vh;z-index:10;background:var(--bg);padding-top:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;will-change:transform}
+.htxt{display:flex;flex-direction:column;align-items:center;will-change:transform}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hero.go .enjoy{opacity:1}
+.hsm,.hbig{display:block;overflow:hidden;white-space:nowrap}
+.hsm{font:500 clamp(18px,2vw,30px)/1.15 var(--sans);letter-spacing:-.01em;text-transform:uppercase}
+.hbig{font:700 clamp(56px,11.5vw,200px)/.95 var(--sans);letter-spacing:-.045em;padding-bottom:.06em;text-transform:uppercase}
+.hsm i,.hbig i{display:inline-block;font-style:normal;transform:translateY(105%);transition:transform 1.1s var(--expo)}
+.hero.go .hsm i,.hero.go .hbig i{transform:none}
+.hsub{margin-top:clamp(14px,1.6vw,22px);font:400 11px/1.7 var(--sans);letter-spacing:.04em;text-transform:uppercase}
+.hsub span{display:block;overflow:hidden}
+.hsub span i{display:block;font-style:normal;transform:translateY(250%) rotate(5deg);transform-origin:0 50%;transition:transform 1.1s var(--expo)}
+.hero.go .hsub span i{transform:none}
+.enjoy{position:absolute;left:var(--pad);bottom:18px;display:flex;align-items:center;gap:10px;font:500 11px/1 var(--sans);letter-spacing:.04em;text-transform:uppercase;opacity:0;transition:opacity 1s .8s}
+.enjoy b{display:inline-block;width:18px;height:18px;border:1px solid currentColor;border-radius:50%;position:relative}
+.enjoy b::after{content:"";position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px;background:currentColor;border-radius:50%;animation:dn 1.6s var(--expo) infinite}
+@keyframes dn{0%{transform:translateY(-4px);opacity:0}40%{opacity:1}100%{transform:translateY(5px);opacity:0}}
+.hbot{position:absolute;inset:0;opacity:0;transform:translateY(10%);transition:opacity 2.8s var(--expo),transform 2.8s var(--expo)}
+.hero.go .hbot{opacity:1;transform:none}
+.himgs{position:absolute;inset:0;overflow:hidden;transform-origin:50% 100%;will-change:transform;transform:translate3d(0,30%,0) scale(1.25);background:#000}
+.hscene{position:absolute;inset:0;opacity:0;transition:opacity .9s var(--expo)}
+.hscene.on{opacity:1}
+.hscene img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hscene::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.42)}
+.hchips{position:absolute;left:12.5vw;top:34vh;z-index:3;display:flex;gap:1.2vw}
+.hchip{width:15vw;aspect-ratio:.8;padding:12px 12px 12px;display:flex;flex-direction:column;justify-content:space-between;font:500 11px/1.2 var(--sans);letter-spacing:.04em;text-transform:uppercase;will-change:transform;transform:translate3d(-130vw,0,0);cursor:pointer;text-align:left}
+.hchip b{font-weight:700}
+.hchip span:last-child{font-size:12px;letter-spacing:.02em}
+.hcap{position:absolute;left:calc(12.5vw + 4 * 15vw + 3 * 1.2vw + 2.4vw);top:34vh;z-index:3;color:#fff;font:500 12px/1.4 var(--sans);letter-spacing:.02em;text-transform:uppercase;opacity:0;transition:opacity .6s}
+.hcap b{display:block;font-weight:700}
+.hnav{position:absolute;right:var(--pad);bottom:calc(var(--pad) * 1.4);z-index:4;display:flex;gap:14px;color:#fff;font:500 11px/1 var(--sans);letter-spacing:.04em}
+.hnav button{opacity:.55;padding:4px 0;border-bottom:1px solid transparent;transition:opacity .25s}
+.hnav button:hover,.hnav button[aria-current="true"]{opacity:1;border-color:#fff}
+.hq{position:absolute;left:var(--pad);bottom:calc(var(--pad) * 1.4);z-index:3;color:#fff;max-width:min(40ch,60%);font:500 clamp(15px,1.5vw,22px)/1.3 var(--sans);text-transform:none}
+.hq small{display:block;margin-top:4px;font:400 clamp(12px,1vw,14px)/1.35 var(--sans);opacity:.8}
+.hero.static{height:auto}.hero.static .stick{position:relative;height:auto}
+.hero.static .htop{position:relative;height:auto;padding:90px 0 60px}
+.hero.static .hbot{position:relative;height:70vh;opacity:1;transform:none}.hero.static 
+
+/* 색인 */
+
+/* 영화 한 편 */
+.film{position:relative}
+.screen{position:relative;height:100vh;min-height:560px;overflow:hidden;background:#000;color:#fff}
+.screen img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(1.12);transition:transform 2.4s var(--expo),opacity 1s;opacity:0}
+.film.in .screen img{transform:none;opacity:1}
+.screen::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.3),transparent 32%,transparent 52%,rgba(0,0,0,.5))}
+.screen .lab{position:absolute;left:var(--pad);right:var(--pad);top:76px;z-index:2;display:flex;justify-content:space-between;gap:14px}
+.screen .lab div{display:flex;gap:14px}
+.screen h2{position:absolute;left:var(--pad);right:var(--pad);top:108px;z-index:2;font:500 clamp(56px,11vw,190px)/.9 var(--sans);letter-spacing:-.045em}
+.screen h2 .m{display:inline-block;overflow:hidden;vertical-align:bottom;padding-bottom:.06em}
+.screen h2 .w{display:inline-block;transform:translateY(105%);transition:transform 1.3s var(--expo)}
+.film.in .screen h2 .w{transform:none}
+.screen .yr{position:absolute;right:var(--pad);bottom:calc(var(--pad) * 1.2);z-index:2;font:500 clamp(48px,9vw,150px)/.8 var(--sans);letter-spacing:-.06em;opacity:0;transition:opacity 1s .8s}
+.film.in .screen .yr{opacity:1}
+.screen .subt{position:absolute;left:var(--pad);bottom:calc(var(--pad) * 1.2);z-index:2;max-width:min(46ch,52%);font:500 clamp(16px,1.7vw,26px)/1.35 var(--sans);opacity:0;transform:translateY(10px);transition:opacity 1s .9s,transform 1.2s .9s var(--expo)}
+.screen .subt small{display:block;font:400 clamp(13px,1.1vw,16px)/1.35 var(--sans);margin-top:6px;opacity:.9}
+.screen .subt .by{display:block;margin-top:9px;opacity:.75}
+.film.in .screen .subt{opacity:1;transform:none}
+.screen .miss{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:var(--mute)}
+.film.nostill .screen .miss{display:flex}
+.film.nostill .screen img{display:none}
+
+.pal{display:grid;grid-template-columns:minmax(240px,1fr) 2.2fr;border-bottom:1px solid var(--n100)}
+.pal .l{padding:calc(var(--pad) + 20px) var(--pad) var(--pad);border-right:1px solid var(--n100)}
+.info{margin:0;display:grid;grid-template-columns:auto 1fr;border-top:1px solid var(--ink)}
+.info dt,.info dd{margin:0;padding:10px 0;border-bottom:1px solid var(--n100);display:flex;align-items:center;min-height:40px}
+.info dt{color:var(--ink);font-weight:700;padding-right:22px}
+.info dd{font:500 15px/1.25 var(--sans);justify-content:flex-end;text-align:right}
+.info dd .dot{display:inline-block;width:12px;height:12px;border-radius:0;margin-right:8px;flex:none;border:1px solid rgba(0,0,0,.12)}
+.pal .r{padding:calc(var(--pad) + 20px) var(--pad) var(--pad)}
+.tonebox{padding:0}
+.tg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(14px,2.4vw,36px)}
+.tg .mono,.sp2 .mono,.pts>.mono,.area-t,.say .k{display:block;margin-bottom:12px;font:700 10px/1 var(--sans);letter-spacing:.02em;text-transform:uppercase;color:var(--ink)}
+.tg .mono em,.sp2 .mono em{font-style:normal;color:var(--mute)}
+.sws{display:flex;gap:2px;height:clamp(46px,5vw,72px)}
+.sws button{flex:1;position:relative;transform:scaleY(.2);transform-origin:50% 100%;opacity:0;transition:transform .9s var(--expo),opacity .4s}
+.film.in .sws button{transform:none;opacity:1}
+.sws button:hover{transform:scaleY(1.12);z-index:2}
+.sp2{margin-top:clamp(18px,2.4vw,34px)}
+.sp2 .sws{height:clamp(52px,5.6vw,84px)}
+.read{display:flex;align-items:center;gap:10px;margin-top:14px;min-height:22px;color:var(--mute)}
+.read i{display:inline-block;width:22px;height:22px;border:1px solid rgba(0,0,0,.1)}
+.read b{font:500 15px/1 var(--sans);color:var(--ink);letter-spacing:0}
+.pts{display:flex;flex-wrap:wrap;column-gap:2px;row-gap:0;width:calc((100% - 2 * clamp(14px,2.4vw,36px)) / 3);margin-top:calc(var(--pad) * 1.2)}
+.pts>.mono{width:100%}
+.pts button{flex:1 1 0;min-width:0;text-align:left}
+.pts span{display:block;aspect-ratio:1.9;border-radius:0;transform:scale(.6);opacity:0;transition:transform .9s .4s var(--expo),opacity .5s .4s}
+.film.in .pts span{transform:none;opacity:1}
+.pts b{display:block;margin-top:8px;font:500 14px/1 var(--sans)}
+.pts small{display:block;margin-top:4px;color:var(--mute)}
+.area{display:flex;height:10px;margin-top:calc(var(--pad) * 1.2)}
+.area i{height:100%;width:0;transition:width 1.4s var(--expo)}
+.film.in .area i{width:var(--w)}
+.say{display:grid;grid-template-columns:1fr 1fr;gap:var(--pad);margin-top:calc(var(--pad) * 1.3);}
+.say p{font:400 clamp(17px,1.4vw,21px)/1.45 var(--sans);white-space:pre-line}
+.acts{margin-top:var(--pad)}
+
+/* 상영 후 */
+footer{background:#000;color:var(--mute);display:flex;justify-content:space-between;gap:20px;padding:18px var(--pad);border-top:1px solid #222}
+
+.lb{position:fixed;inset:0;z-index:100;background:rgba(252,251,250,.98);display:none;grid-template-columns:minmax(0,1fr) minmax(260px,360px);gap:4vw;align-items:center;padding:5vh 5vw}
+.lb.open{display:grid;animation:fade .25s ease}
+@keyframes fade{from{opacity:0}}
+.lb img{max-height:88vh;max-width:100%;justify-self:center;box-shadow:0 40px 70px -40px rgba(14,14,13,.5)}
+.lb h3{font:500 40px/1 var(--sans);letter-spacing:-.03em}
+.lb p{margin-top:12px;white-space:pre-line}
+.lb .ctl{display:flex;gap:8px;margin-top:22px}
+.lb .x{position:absolute;right:var(--pad);top:16px}
+.rv{opacity:0;transform:translateY(24px);transition:opacity .9s var(--expo),transform 1.2s var(--expo)}
+.rv.in{opacity:1;transform:none}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:var(--ink);color:#fff;padding:10px 14px;font:400 11px/1 var(--mono);text-transform:uppercase;opacity:0;pointer-events:none;transition:opacity .25s,transform .4s var(--expo);z-index:120}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:900px){
+  header nav{display:none} header .r span{display:none}
+  .htop{height:62vh}.hbig{font-size:clamp(40px,13vw,90px)}
+  .hchips{left:5vw;right:5vw;top:18vh;flex-wrap:wrap;gap:2vw}.hchip{width:43vw;aspect-ratio:1.15}.hcap{display:none}.hq{bottom:60px}
+  header .mark{font-size:15px}
+  .pal{grid-template-columns:1fr}
+  .pal .l{border-right:0;border-bottom:1px solid var(--n100)}
+  .tg{grid-template-columns:1fr}.pts{width:100%}
+  .say{grid-template-columns:1fr}
+  .screen{height:78vh}.screen .subt{max-width:none;right:var(--pad);bottom:calc(var(--pad) * 3.4)}.screen .yr{font-size:44px}
+  .lb{grid-template-columns:1fr;overflow:auto;align-content:start}.lb img{max-height:62vh}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.screen h2 .w{transform:none}.hsm i,.hbig i,.hsub span i{transform:none}.sws button,.pts span{opacity:1;transform:none}.area i{width:var(--w)}.screen img{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<header id="hd" class="over">
+  <nav class="mono" id="gnb" aria-label="영화 바로가기"></nav>
+  <a class="mark" id="mark" href="#top">Cinema</a>
+  <div class="r mono"><span id="cnt"></span><b id="yrs"></b></div>
+</header>
+
+<section class="hero" id="top" aria-label="첫 화면">
+  <div class="stick">
+    <div class="htop" id="htop"><div class="htxt" id="htxt"></div><div class="enjoy"><b></b><span>Scroll to enter</span></div></div>
+    <div class="hbot"><div class="himgs" id="himgs"></div></div>
+  </div>
+</section>
+
+<main id="list"></main>
+
+<footer class="mono"><span>Palette · Light / Medium / Dark / General spectrum</span></footer>
+
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="배색 카드 크게 보기">
+  <button class="x btn" id="lbx">Close ✕</button>
+  <img id="lbimg" alt="">
+  <div><div class="mono" id="lbno"></div><h3 id="lbt"></h3><p id="lbw"></p>
+  <div class="ctl"><button class="btn" id="lbp">← Prev</button><button class="btn" id="lbn">Next →</button></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- 아래 블록만 고칩니다 — 학생 데이터 (tone은 추출기 v2의 배색표 값) -->
+<script id="cinema" type="application/json">
+{
+  "title": "나에게 힘이 되어 준 장면들",
+  "subtitle": "Five films.",
+  "name": "이수현",
+  "films": [
+    {
+      "no": "01",
+      "title": "MIU404",
+      "titleEn": "MIU404",
+      "director": "Ayuko Tsukahara",
+      "year": "2020",
+      "scene": "6화, 손바닥을 펴 보이며\n\"내 생명선은 길어\"라고 웃는 이부키.",
+      "reason": "손바닥을 펴 보이는 이부키의 웃음이\n파트너 시마를 위로하는 것 같아서.\n뒤에서 동그랗게 번지는 금빛이\n그 위로를 따뜻하게 밝혀 줍니다.",
+      "still": "../장면/01.jpg",
+      "image": "../png/01.png",
+      "quote": {
+        "text": "俺の生命線は、長い",
+        "tr": "내 생명선은 길어",
+        "by": "Ibuki"
+      },
+      "main": [{"hex": "#8A523B", "p": 0.33}, {"hex": "#B05939", "p": 0.20}, {"hex": "#EABA90", "p": 0.18}],
+      "accent": [{"hex": "#BB825F", "p": 0.017}, {"hex": "#541C15", "p": 0.017}],
+      "tone": {
+        "light": [{"hex": "#AC5C3E"}, {"hex": "#B45737"}, {"hex": "#9C674B"}, {"hex": "#CC6345"}, {"hex": "#CA926C"}, {"hex": "#E6B389"}, {"hex": "#F5CB9F"}],
+        "medium": [{"hex": "#7A4D3D"}, {"hex": "#824B36"}, {"hex": "#7F4E38"}, {"hex": "#974E33"}, {"hex": "#A2482F"}, {"hex": "#8E553E"}, {"hex": "#A24D2C"}],
+        "dark": [{"hex": "#150A08"}, {"hex": "#220D0C"}, {"hex": "#34110E"}, {"hex": "#4C221A"}, {"hex": "#613421"}, {"hex": "#733C23"}, {"hex": "#73412D"}],
+        "spectrum": [{"hex": "#F7CFA4"}, {"hex": "#F0C196"}, {"hex": "#E4B087"}, {"hex": "#D79F78"}, {"hex": "#C58D69"}, {"hex": "#CB734F"}, {"hex": "#C96143"}, {"hex": "#B25838"}, {"hex": "#946247"}, {"hex": "#9B5235"}, {"hex": "#8E553E"}, {"hex": "#A1482E"}, {"hex": "#7F4B36"}, {"hex": "#733F29"}, {"hex": "#633523"}, {"hex": "#552319"}, {"hex": "#421A14"}, {"hex": "#2C0F0D"}, {"hex": "#1E0D0B"}, {"hex": "#140908"}]
+      }
+    },
+    {
+      "no": "02",
+      "title": "언내추럴",
+      "titleEn": "Unnatural",
+      "director": "Ayuko Tsukahara",
+      "year": "2018",
+      "scene": "절망할 시간이 있으면\n맛있는 거 먹고 자겠다며\n웃어 보이는 미코토.",
+      "reason": "죽음을 다루는 이야기 한가운데서\n일상으로 버티는 힘을 보여 주어서.\n흐린 회색 앞의 짙은 남색 재킷이\n흔들리지 않는 미코토를 세웁니다.",
+      "still": "../장면/02.jpg",
+      "image": "../png/02.png",
+      "quote": {
+        "text": "絶望してる暇があったら、うまいもん食べて寝るかな。",
+        "tr": "절망할 시간이 있으면 맛있는 거 먹고 잘래",
+        "by": "Mikoto"
+      },
+      "main": [{"hex": "#262022", "p": 0.35}, {"hex": "#A5938C", "p": 0.28}, {"hex": "#847675", "p": 0.23}],
+      "accent": [{"hex": "#B18062", "p": 0.018}],
+      "tone": {
+        "light": [{"hex": "#92837C"}, {"hex": "#96888E"}, {"hex": "#B78668"}, {"hex": "#A2938D"}, {"hex": "#DEAA8B"}, {"hex": "#B9B4B7"}, {"hex": "#E5D7CD"}],
+        "medium": [{"hex": "#433939"}, {"hex": "#5E4033"}, {"hex": "#544944"}, {"hex": "#685A59"}, {"hex": "#776864"}, {"hex": "#83757A"}, {"hex": "#887870"}],
+        "dark": [{"hex": "#1A1619"}, {"hex": "#1C1715"}, {"hex": "#211E24"}, {"hex": "#251F1E"}, {"hex": "#2A1E19"}, {"hex": "#2A272E"}, {"hex": "#382B26"}],
+        "spectrum": [{"hex": "#A2928D"}, {"hex": "#9B8D92"}, {"hex": "#B48365"}, {"hex": "#8E8187"}, {"hex": "#8E7F77"}, {"hex": "#827579"}, {"hex": "#807069"}, {"hex": "#906347"}, {"hex": "#756768"}, {"hex": "#70605A"}, {"hex": "#625655"}, {"hex": "#684535"}, {"hex": "#524844"}, {"hex": "#3F3633"}, {"hex": "#302C35"}, {"hex": "#33251F"}, {"hex": "#252128"}, {"hex": "#271F1C"}, {"hex": "#1D1A1E"}, {"hex": "#1C1716"}]
+      }
+    },
+    {
+      "no": "03",
+      "title": "가타카",
+      "titleEn": "Gattaca",
+      "director": "Andrew Niccol",
+      "year": "1997",
+      "scene": "나선 계단 위아래에서\n마주한 빈센트와 제롬의\n작별 인사.",
+      "reason": "주저앉은 제롬이 빈센트를 보며\n다시 꿈을 꿀 수 있었다는\n우정과 연대의 고백이 남아서.\n위에서 떨어지는 한 줄기 빛이\n두 사람의 희망을 비춥니다.",
+      "still": "../장면/03.jpg",
+      "image": "../png/03.png",
+      "quote": {
+        "text": "I only lent you my body. You lent me your dream.",
+        "tr": "난 몸만 빌려줬지만 넌 내게 꿈을 빌려줬어.",
+        "by": "Jerome"
+      },
+      "main": [{"hex": "#3A2F1E", "p": 0.56}, {"hex": "#281B11", "p": 0.14}, {"hex": "#0E0604", "p": 0.13}, {"hex": "#5A5037", "p": 0.10}, {"hex": "#7E6E48", "p": 0.06}],
+      "accent": [{"hex": "#ADA55E", "p": 0.003}],
+      "tone": {
+        "light": [{"hex": "#423925"}, {"hex": "#53492D"}, {"hex": "#4A533A"}, {"hex": "#605541"}, {"hex": "#78684D"}, {"hex": "#7C7538"}, {"hex": "#9F8466"}],
+        "medium": [{"hex": "#36291A"}, {"hex": "#342C1C"}, {"hex": "#352B24"}, {"hex": "#42271C"}, {"hex": "#4C2417"}, {"hex": "#37311D"}, {"hex": "#3C301F"}],
+        "dark": [{"hex": "#070302"}, {"hex": "#150805"}, {"hex": "#21110B"}, {"hex": "#291A10"}, {"hex": "#271F16"}, {"hex": "#2F2114"}, {"hex": "#2B2312"}],
+        "spectrum": [{"hex": "#AA9070"}, {"hex": "#9A944C"}, {"hex": "#827763"}, {"hex": "#787135"}, {"hex": "#816C4C"}, {"hex": "#835640"}, {"hex": "#6B5F46"}, {"hex": "#615628"}, {"hex": "#50533A"}, {"hex": "#53482E"}, {"hex": "#4E4335"}, {"hex": "#413924"}, {"hex": "#3A301E"}, {"hex": "#49271B"}, {"hex": "#352C20"}, {"hex": "#312416"}, {"hex": "#221B10"}, {"hex": "#26160F"}, {"hex": "#190C07"}, {"hex": "#090402"}]
+      }
+    },
+    {
+      "no": "04",
+      "title": "그린 북",
+      "titleEn": "Green Book",
+      "director": "Peter Farrelly",
+      "year": "2018",
+      "scene": "긴 여행 끝에\n토니와 셜리가 끌어안는 순간.",
+      "reason": "서로 달랐던 두 사람이 여정 끝에\n서로의 자리를 내어 주는 모습이\n편견보다 마음이 멀리 간다는 걸 보여 주어서.\n벽의 차분한 올리브 그린이\n포옹의 온기를 더 깊게 만듭니다.",
+      "still": "../장면/04.jpg",
+      "image": "../png/04.png",
+      "quote": {
+        "text": "Welcome.",
+        "tr": "어서 와",
+        "by": "Tony"
+      },
+      "main": [{"hex": "#342815", "p": 0.20}, {"hex": "#181409", "p": 0.18}, {"hex": "#55502F", "p": 0.17}, {"hex": "#6E6D49", "p": 0.17}, {"hex": "#86836F", "p": 0.15}],
+      "accent": [],
+      "tone": {
+        "light": [{"hex": "#777750"}, {"hex": "#7A755F"}, {"hex": "#827E69"}, {"hex": "#80815C"}, {"hex": "#878B67"}, {"hex": "#8C8977"}, {"hex": "#8E9372"}],
+        "medium": [{"hex": "#3E381F"}, {"hex": "#4E482E"}, {"hex": "#524C29"}, {"hex": "#5E5B34"}, {"hex": "#66663E"}, {"hex": "#6A664F"}, {"hex": "#6E6F48"}],
+        "dark": [{"hex": "#0F0C04"}, {"hex": "#151308"}, {"hex": "#1E1B0E"}, {"hex": "#272010"}, {"hex": "#2E1F0F"}, {"hex": "#312A17"}, {"hex": "#3B2612"}],
+        "spectrum": [{"hex": "#E9EFE5"}, {"hex": "#979584"}, {"hex": "#8E9372"}, {"hex": "#8B8977"}, {"hex": "#848762"}, {"hex": "#7E7A65"}, {"hex": "#72724B"}, {"hex": "#6F6B54"}, {"hex": "#605D36"}, {"hex": "#5C563E"}, {"hex": "#524D2A"}, {"hex": "#453F23"}, {"hex": "#4C331D"}, {"hex": "#38301C"}, {"hex": "#3A2613"}, {"hex": "#292312"}, {"hex": "#2D1F0F"}, {"hex": "#231709"}, {"hex": "#1C190C"}, {"hex": "#110F06"}]
+      }
+    },
+    {
+      "no": "05",
+      "title": "베일리 어게인",
+      "titleEn": "A Dog's Purpose",
+      "director": "Lasse Hallström",
+      "year": "2017",
+      "scene": "들판에서 이든이 다시\n베일리를 알아보는 순간.",
+      "reason": "지금 곁에 있는 존재와 보내는 하루를\n소중히 여기게 해 주어서.\n넓게 덮은 흰 하늘이\n이든과 베일리의 재회를 포근하게 감쌉니다.",
+      "still": "../장면/05.jpg",
+      "image": "../png/05.png",
+      "quote": {
+        "text": "즐겁게 살아. 지나간 일로 슬퍼하지 말고, 다가올 일로 얼굴 찌푸리지 마.",
+        "tr": "",
+        "by": "Bailey"
+      },
+      "main": [{"hex": "#F2F3F2", "p": 0.35}, {"hex": "#B5B774", "p": 0.18}, {"hex": "#664327", "p": 0.16}, {"hex": "#A9774E", "p": 0.13}],
+      "accent": [],
+      "tone": {
+        "light": [{"hex": "#E4E0D4"}, {"hex": "#F0DFBF"}, {"hex": "#E1E3E2"}, {"hex": "#E6E5CE"}, {"hex": "#E6E7E0"}, {"hex": "#F6F5EB"}, {"hex": "#F4F6F5"}],
+        "medium": [{"hex": "#C49159"}, {"hex": "#8DA7B2"}, {"hex": "#A4A59E"}, {"hex": "#A8B364"}, {"hex": "#B8B776"}, {"hex": "#D2C89E"}, {"hex": "#CACBC6"}],
+        "dark": [{"hex": "#41342A"}, {"hex": "#5C3817"}, {"hex": "#6B4732"}, {"hex": "#7D5127"}, {"hex": "#666E6E"}, {"hex": "#A2703E"}, {"hex": "#AB7158"}],
+        "spectrum": [{"hex": "#F4F5F5"}, {"hex": "#D8D9D4"}, {"hex": "#D3C9A0"}, {"hex": "#BBBEBB"}, {"hex": "#BEBB7D"}, {"hex": "#B0B86C"}, {"hex": "#9DAC58"}, {"hex": "#A5A866"}, {"hex": "#C19C6A"}, {"hex": "#8BA6B1"}, {"hex": "#9F9F98"}, {"hex": "#B37F49"}, {"hex": "#B0765D"}, {"hex": "#827E74"}, {"hex": "#8C5F32"}, {"hex": "#64635C"}, {"hex": "#7D543E"}, {"hex": "#6B421B"}, {"hex": "#524337"}, {"hex": "#5B3B23"}]
+      }
+    }
+  ]
+}
+</script>
+
+<script>
+(() => {
+const D = JSON.parse(document.getElementById('cinema').textContent);
+const F = (D.films || []).slice(0, 5);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const br = s => esc(s).replace(/\\n|\n/g, '<br>');
+const pc = (p, d) => (+p * 100).toFixed(d) + '%';
+const pad2 = n => String(n).padStart(2, '0');
+const nm = f => f.title || ('Film ' + f.no);
+const NOW = new Date().getFullYear();
+const dash = v => v || '—';
+
+// 색 도우미
+const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const lum = h => { const [r, g, b] = rgb(h).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }); return .2126 * r + .7152 * g + .0722 * b; };
+const inkOn = h => lum(h) > .36 ? '#0e0e0d' : '#ffffff';
+const sat = h => { const [r, g, b] = rgb(h).map(v => v / 255); const mx = Math.max(r, g, b), mn = Math.min(r, g, b); return mx ? (mx - mn) / mx : 0; };
+const pt = f => f.point || ((f.accent || [])[0] || {}).hex || ((f.main || []).slice().sort((a, b) => sat(b.hex) - sat(a.hex))[0] || {}).hex || '#fcaa37';
+// tone이 없으면 main · accent로 대신 그린다
+const tone = f => {
+  if (f.tone && f.tone.spectrum && f.tone.spectrum.length) return f.tone;
+  const all = (f.main || []).concat(f.accent || []).slice().sort((a, b) => lum(b.hex) - lum(a.hex));
+  const n = Math.max(1, Math.ceil(all.length / 3));
+  return {light: all.slice(0, n).reverse(), medium: all.slice(n, 2 * n), dark: all.slice(2 * n).reverse(), spectrum: all};
+};
+const spec = (arr, cls) => `<div class="${cls}">${arr.map(c => `<i style="background:${esc(c.hex)}"></i>`).join('')}</div>`;
+const toast = t => { const e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 1600); };
+
+// 머리
+const years = F.map(f => +f.year).filter(Boolean);
+document.title = (D.title || '극장').replace(/\n/g, ' ');
+$('mark').textContent = (D.name || D.author || '') ? (D.name || D.author) + '의 Cinema' : 'Cinema';
+$('gnb').innerHTML = F.map(f => `<a href="#f${esc(f.no)}">${esc(f.titleEn || nm(f))}</a>`).join('');
+$('cnt').textContent = pad2(F.length) + ' films';
+$('yrs').textContent = years.length ? Math.min(...years) + '–' + Math.max(...years) : '';
+
+// ── 첫 화면: 흰 패널이 걷히며 장면 다섯 칸이 열린다 ──
+const hero = $('top');
+const words = t => esc(t).split(/\\n|\n/).map(line => `<span class="m">${line.split(/(\s+)/).filter(w => w.trim()).map(w => `<span class="w">${w}</span>`).join(' ')}</span>`).join('');
+const chars = (t, step, d0) => esc(t).split('').map((c, i) => `<i style="transition-delay:${(d0 + i * step).toFixed(2)}s">${c === ' ' ? '&nbsp;' : c}</i>`).join('');
+const bigT = String(D.title || '').replace(/\\n|\n/g, ' ');
+$('htxt').innerHTML = `<span class="hsm">${chars(bigT, .05, .5)}</span><h1 class="hbig">${chars(D.subtitle || '', .1, 0)}</h1>`;
+// 영화 다섯 편이 차례로: 장면이 바뀌고, 그 영화의 컬러칩 네 장이 왼쪽에서 들어왔다 오른쪽으로 나간다
+const NF = F.length, P1 = 1.1, SEG = 1.0;
+$('himgs').innerHTML = `${F.map((f, i) => `<div class="hscene" data-i="${i}"><img src="${esc(f.still)}" alt="${esc(nm(f))} 장면" onerror="this.remove()"></div>`).join('')}
+  <div class="hchips" id="hchips">${['Light', 'Medium', 'Dark', 'Point'].map(k => `<div class="hchip" data-hex="" title="누르면 복사"><b>${k}</b><span></span></div>`).join('')}</div>
+  <div class="hcap" id="hcap"></div><p class="hq" id="hq"></p>
+  <div class="hnav" id="hnav">${F.map((f, i) => `<button data-i="${i}" aria-label="${esc(f.no)} ${esc(nm(f))}">${esc(f.no)}</button>`).join('')}</div>`;
+const still = matchMedia('(prefers-reduced-motion:reduce)').matches;
+if (still) hero.classList.add('static');
+const imgs = $('himgs'), htop = $('htop'), htxt = $('htxt'), hcap = $('hcap'), hq = $('hq');
+const chips = [...document.querySelectorAll('.hchip')], scenes = [...document.querySelectorAll('.hscene')], navb = [...document.querySelectorAll('#hnav button')];
+const midc = (a, d) => a[Math.floor(a.length / 2)] || {hex: d};
+let shown = -1;
+function setFilm(i){
+  if (i === shown) return; shown = i;
+  const f = F[i], T = tone(f), p = pt(f);
+  const cs = [midc(T.light, p), midc(T.medium, p), midc(T.dark, p), {hex: p}];
+  chips.forEach((c, k) => { const h = cs[k].hex; c.dataset.hex = h; c.style.background = h; c.style.color = inkOn(h); c.title = h + ' · 누르면 복사'; c.querySelector('span').textContent = h.toUpperCase(); });
+  hcap.innerHTML = `<b>${esc(nm(f))}</b>${esc(dash(f.year))} · ${esc(dash(f.director))}<br>${esc(f.no)} / ${pad2(NF)}`;
+  const q = f.quote && f.quote.text ? f.quote : null;
+  hq.innerHTML = q ? `${br(q.text)}${q.tr ? `<small>${br(q.tr)}</small>` : ''}` : '';
+  scenes.forEach((e, k) => e.classList.toggle('on', k === i));
+  navb.forEach((e, k) => e.setAttribute('aria-current', k === i ? 'true' : 'false'));
+}
+setFilm(0);
+$('hnav').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const H = innerHeight, top = hero.getBoundingClientRect().top + scrollY; window.scrollTo({top: top + (P1 + (+b.dataset.i + .55) * SEG) * H, behavior: 'smooth'}); });
+const ease3 = q => 1 - Math.pow(1 - q, 3), clamp01 = q => Math.min(1, Math.max(0, q));
+function scrub(){
+  if (still) return;
+  const r = hero.getBoundingClientRect(), H = innerHeight, sc = -r.top;
+  const p = clamp01(sc / (H * P1));
+  htxt.style.transform = `translate3d(0,${(-50 * p * p).toFixed(2)}%,0)`;
+  htop.style.transform = `translate3d(0,${(-100 * p * p).toFixed(2)}%,0)`;
+  const out = 1 - (1 - p) * (1 - p);
+  imgs.style.transform = `translate3d(0,${(30 * (1 - out)).toFixed(2)}%,0) scale(${(1.25 - .25 * p).toFixed(4)})`;
+  const t = (sc - H * P1) / (H * SEG);
+  const s = Math.min(NF - 1, Math.max(0, Math.floor(t))), u = clamp01(t - s);
+  if (t >= 0 || shown !== 0) setFilm(t < 0 ? 0 : s);
+  const last = s === NF - 1;
+  chips.forEach((c, i) => {
+    const k = 3 - i;
+    const qin = t < 0 ? 0 : ease3(clamp01((u - k * .07) / .32));
+    const qout = last || t < 0 ? 0 : ease3(clamp01((u - .74 - k * .04) / .22));
+    c.style.transform = `translate3d(${(-130 * (1 - qin) + 130 * qout).toFixed(2)}vw,0,0)`;
+  });
+  hcap.style.opacity = t >= 0 && u > .4 && (last || u < .76) ? 1 : 0;
+}
+addEventListener('scroll', scrub, {passive: true}); addEventListener('resize', scrub);
+function intro(){ requestAnimationFrame(() => requestAnimationFrame(() => hero.classList.add('go'))); }
+const hd = $('hd');
+
+
+// ── 영화마다: 장면 · 정보 · 라이트/미디엄/다크/제너럴 스펙트럼 ──
+$('list').innerHTML = F.map((f, i) => {
+  const T = tone(f), p = pt(f), tot = (f.main || []).reduce((a, m) => a + (+m.p || 0), 0) || 1;
+  const sws = (arr, label) => `<div><div class="mono">${label}</div><div class="sws">${arr.map((c, j) => `<button style="background:${esc(c.hex)};transition-delay:${j * 55}ms" data-hex="${esc(c.hex)}" data-p="${c.p ?? ''}" title="${esc(c.hex)} · 누르면 복사" aria-label="${esc(c.hex)} 복사"></button>`).join('')}</div></div>`;
+  const acc = (f.accent || []).map(a => `<button data-hex="${esc(a.hex)}" data-p="${a.p}"><span style="background:${esc(a.hex)}"></span><b>${esc(a.hex)}</b><small class="mono">${pc(a.p, 1)}</small></button>`).join('');
+  const area = (f.main || []).map((m, j) => `<i style="background:${esc(m.hex)};--w:${(100 * (+m.p || 0) / tot).toFixed(2)}%;transition-delay:${j * 90}ms"></i>`).join('');
+  const dec = f.year ? Math.floor(+f.year / 10) * 10 + 's' : '—', age = f.year ? NOW - +f.year : null;
+  const q = f.quote && f.quote.text ? f.quote : null;
+  return `<section class="film" id="f${esc(f.no)}" data-i="${i}">
+  <div class="screen"><img src="${esc(f.still)}" alt="${esc(nm(f))} 장면"><div class="lab mono"><div><span>${esc(f.no)} / ${pad2(F.length)}</span><span>${esc(dash(f.director))}</span></div></div>
+    <h2>${words(nm(f))}</h2><div class="yr">${esc(dash(f.year))}</div>${q ? `<p class="subt">${br(q.text)}${q.tr ? `<small>${br(q.tr)}</small>` : ''}${q.by ? `<span class="by mono">${esc(q.by)}</span>` : ''}</p>` : ''}<div class="miss mono">장면 사진이 아직 없습니다</div></div>
+  <div class="pal"><div class="l">
+    <dl class="info mono-dl">
+      <dt class="mono">Title</dt><dd>${esc(nm(f))}</dd>
+      <dt class="mono">Year</dt><dd>${esc(dash(f.year))}</dd>
+      <dt class="mono">Director</dt><dd>${esc(dash(f.director))}</dd>
+      <dt class="mono">Decade</dt><dd>${esc(dec)}</dd>
+      <dt class="mono">Released</dt><dd>${age === null ? '—' : (age ? age + ' yrs ago' : 'this year')}</dd>
+      <dt class="mono">Point</dt><dd><span class="dot" style="background:${esc(p)}"></span>${esc(p.toUpperCase())}</dd>
+      <dt class="mono">Colors</dt><dd>${T.light.length + T.medium.length + T.dark.length} tone · ${T.spectrum.length} spectrum</dd>
+    </dl></div>
+  <div class="r"><div class="tonebox">
+    <div class="tg">${sws(T.light, 'Light')}${sws(T.medium, 'Medium')}${sws(T.dark, 'Dark')}</div>
+    <div class="sp2"><div class="mono">General Spectrum</div><div class="sws">${T.spectrum.map((c, j) => `<button style="background:${esc(c.hex)};transition-delay:${j * 30}ms" data-hex="${esc(c.hex)}" data-p="${c.p ?? ''}" title="${esc(c.hex)} · 누르면 복사" aria-label="${esc(c.hex)} 복사"></button>`).join('')}</div></div>
+  </div>
+  <div class="pts"><div class="mono">Point colors</div>${acc || '<span class="mono" style="color:var(--mute)">—</span>'}</div>
+  ${area ? `<div class="mono area-t" style="margin-top:calc(var(--pad) * 1.2)">Area</div><div class="area" style="margin-top:0">${area}</div>` : ''}
+  <div class="say">${f.scene ? `<div><div class="k mono">The scene</div><p>${br(f.scene)}</p></div>` : '<div></div>'}${f.reason ? `<div><div class="k mono">Why this film</div><p>${br(f.reason)}</p></div>` : ''}</div>
+  <div class="acts"><button class="btn" data-lb="${i}">↗ 배색 카드 크게 보기</button></div></div></div></section>`;
+}).join('');
+document.querySelectorAll('.film .screen img').forEach(im => im.addEventListener('error', () => im.closest('.film').classList.add('nostill')));
+
+// 값 읽기 · 복사
+document.addEventListener('mouseover', e => { const b = e.target.closest('[data-hex]'); if (!b) return; const r = b.closest('.tonebox,.pts'); const rd = (b.closest('.r') || document).querySelector('[data-read]'); if (!rd) return; rd.innerHTML = `<i style="background:${b.dataset.hex}"></i><b>${b.dataset.hex}</b><span>${b.dataset.p !== '' && b.dataset.p != null ? pc(b.dataset.p, 1) : ''}</span>`; });
+document.addEventListener('click', e => { const b = e.target.closest('[data-hex]'); if (!b) return; (navigator.clipboard ? navigator.clipboard.writeText(b.dataset.hex) : Promise.reject()).then(() => toast(b.dataset.hex + ' 복사됨'), () => toast(b.dataset.hex)); });
+
+// 나타나기 · 머리 색
+const io = new IntersectionObserver(es => es.forEach(x => { if (x.isIntersecting) { x.target.classList.add('in'); io.unobserve(x.target); } }), {threshold: .18});
+document.querySelectorAll('.film').forEach(el => io.observe(el));
+function head(){
+  const y = 28; let dark = false;
+  const hr = hero.getBoundingClientRect();
+  // 히어로: 흰 패널이 헤더 아래에 남아 있는 동안은 밝은 바탕, 걷힌 뒤엔 장면(어두운 바탕)
+  if (hr.top <= y && hr.bottom > y) dark = !(still || htop.getBoundingClientRect().bottom > y + 6);
+  document.querySelectorAll('.screen').forEach(sc => { const r = sc.getBoundingClientRect(); if (r.top <= y && r.bottom > y) dark = true; });
+  hd.classList.toggle('dark', dark);
+  let on = -1; document.querySelectorAll('.film').forEach((fm, i) => { const r = fm.getBoundingClientRect(); if (r.top <= innerHeight * .5 && r.bottom > innerHeight * .5) on = i; });
+  document.querySelectorAll('#gnb a').forEach((a, i) => a.setAttribute('aria-current', i === on ? 'true' : 'false'));
+}
+addEventListener('scroll', head, {passive: true});
+
+// 크게 보기
+let li = 0;
+function openLb(i){ li = i; const f = F[i]; $('lbimg').src = f.image; $('lbimg').alt = nm(f) + ' 배색 카드'; $('lbno').textContent = f.no + ' / ' + pad2(F.length); $('lbt').textContent = nm(f); $('lbw').innerHTML = [esc([f.year, f.director].filter(Boolean).join(' · ')), br(f.reason)].filter(Boolean).join('<br><br>'); $('lb').classList.add('open'); $('lbx').focus(); }
+function closeLb(){ $('lb').classList.remove('open'); }
+document.addEventListener('click', e => { const b = e.target.closest('[data-lb]'); if (b) openLb(+b.dataset.lb); });
+$('lbx').onclick = closeLb; $('lb').addEventListener('click', e => { if (e.target.id === 'lb') closeLb(); });
+$('lbp').onclick = () => openLb((li - 1 + F.length) % F.length);
+$('lbn').onclick = () => openLb((li + 1) % F.length);
+document.addEventListener('keydown', e => { if (!$('lb').classList.contains('open')) return; if (e.key === 'Escape') closeLb(); if (e.key === 'ArrowRight') $('lbn').click(); if (e.key === 'ArrowLeft') $('lbp').click(); });
+
+head(); scrub(); (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(intro);
+window.__cin = {openLb, tone, pt};
+})();
+</script>
+</body>
+</html>
